@@ -1,0 +1,14 @@
+name: Story
+description: A unit of work.
+labels: ["story"]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What needs to be done and why }
+    validations: { required: true }
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance criteria
+      value: "- [ ] \n- [ ] "
+    validations: { required: true }

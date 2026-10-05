@@ -1,0 +1,38 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: deploy-org
+  cancel-in-progress: false
+jobs:
+  deploy:
+    name: Deploy to org
+    runs-on: ubuntu-latest
+    env:
+      SF_AUTH_URL: ${{ secrets.SF_AUTH_URL }}
+      BEFORE: ${{ github.event.before }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Salesforce CLI and sfdx-git-delta
+        run: |
+          npm install --global @salesforce/cli
+          echo y | sf plugins install sfdx-git-delta
+      - name: Log in to the org
+        run: |
+          if [ -z "$SF_AUTH_URL" ]; then echo "Secret SF_AUTH_URL is not set"; exit 1; fi
+          echo "$SF_AUTH_URL" > auth.txt
+          sf org login sfdx-url --sfdx-url-file auth.txt --alias target
+          rm -f auth.txt
+      - name: Deploy only what changed
+        run: |
+          FROM="$BEFORE"
+          if [[ "$FROM" =~ ^0+$ ]]; then FROM="HEAD~1"; fi    # very first push to a new branch
+          bash scripts/ci/deploy-delta.sh "$FROM" deploy
